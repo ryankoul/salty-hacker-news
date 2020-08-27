@@ -1,9 +1,17 @@
+# Importing necessary libraries
 import logging
-import random
-
 from fastapi import APIRouter
 import pandas as pd
+import numpy as np
 from pydantic import BaseModel, Field, validator
+from App.Api.model import preprocessing, sentiment_analysis
+# from model import preprocessing, sentiment_analysis
+import sqlite3
+# import static database as dataframe
+# from App.Api.update_db import db_as_df
+# from update_db import db_as_df
+# import App.Api.viz
+
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -12,44 +20,43 @@ router = APIRouter()
 class Item(BaseModel):
     """Use this data model to parse the request body JSON."""
 
-    x1: float = Field(..., example=3.14)
-    x2: int = Field(..., example=-42)
-    x3: str = Field(..., example='banjo')
-
     def to_df(self):
         """Convert pydantic object to pandas dataframe with 1 row."""
         return pd.DataFrame([dict(self)])
 
-    @validator('x1')
-    def x1_must_be_positive(cls, value):
-        """Validate that x1 is a positive number."""
-        assert value > 0, f'x1 == {value}, must be > 0'
-        return value
+    # Potential code
+    # @validator('comment_id')
+    # def comment_id_must_be_positive(cls, value):
+    #     """Validate that comment_id is a positive number."""
+    #     assert value > 0, f'comment_id == {value}, must be > 0'
+    #     return value
+
+# get path - to read data
+# @router.get('/hn_db.db') 
+#     return {'Top 10 most popular commenters rated by saltiness': randint(1, 100)}
+# @router.get('/hn_db.db')
+#     return {'Top 10 most popular commenters': randint(1, 100)}
 
 
-@router.post('/predict')
-async def predict(item: Item):
-    """
-    Make random baseline predictions for classification problem 🔮
+@router.get('/salty')
+async def predict(num: int = 1000):
+    """Returns 1,000 saltiest Hacker News commenters, default 1,0000."""
 
-    ### Request Body
-    - `x1`: positive float
-    - `x2`: integer
-    - `x3`: string
+    conn = sqlite3.connect('hn_db.db')
+    curs = conn.cursor()
+    query = ("""
+        SELECT comment_author, saltiness
+        FROM hn_users
+        ORDER BY saltiness ASC;
+        """)
+    df = pd.read_sql(sql=query, con=conn)
 
-    ### Response
-    - `prediction`: boolean, at random
-    - `predict_proba`: float between 0.5 and 1.0, 
-    representing the predicted class's probability
+    # Subset dataframe
+    df = df[:num]
 
-    Replace the placeholder docstring and fake predictions with your own model.
-    """
+    # Change index to comment_author
+    df = df.set_index(keys='comment_author')
 
-    X_new = item.to_df()
-    log.info(X_new)
-    y_pred = random.choice([True, False])
-    y_pred_proba = random.random() / 2 + 0.5
-    return {
-        'prediction': y_pred,
-        'probability': y_pred_proba
-    }
+    # Return dataframe as a JSON object whose keys are comment_author
+    # and whose values are the corresponding saltiness
+    return df.to_json(orient='index')

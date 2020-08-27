@@ -16,6 +16,7 @@ fastapi = "*"
 pandas = "*"
 uvicorn = "*"
 plotly = "*"
+vadersentiment = "*"
 
 [requires]
 python_version = "3.7"

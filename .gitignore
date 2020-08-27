@@ -3,4 +3,6 @@
 .ipynb_checkpoints
 .pytest_cache
 .vscode
+hn_db.db
+
 Pipfile.lock
